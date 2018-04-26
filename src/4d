@@ -1,0 +1,6 @@
+#!/home/fgibson/.virtualenvs/forponto/bin/python 
+from cli import cli
+
+
+if __name__ == '__main__':
+   cli()
