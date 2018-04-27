@@ -73,7 +73,6 @@ class Mark:
 
         return (day_extras, night_extras, )
 
-
     def seconds_to_time(self, seconds):
         hours, remainder = divmod(seconds, 3600)
         minutes = remainder // 60
@@ -119,8 +118,8 @@ class Mark:
         debt = 0
         credt = 0
 
-        # 08:01h in seconds
-        if business > 28860:
+        # 08:10h in seconds
+        if business > 29400:
             if business >= 29700:  # 08:15h in seconds
                 credt = business - 29700
             business = 29700
