@@ -170,7 +170,7 @@ class ListMarkDetailsCommand(ListMarksCommand):
         if mark.has_missing:
             return Fore.RED
 
-        if mark.working_hours <= _time(8, 15):
+        if mark.working_hours < _time(8, 15):
             return Fore.MAGENTA
 
         if mark.has_day_extras or mark.has_night_extras or mark.has_credit:
