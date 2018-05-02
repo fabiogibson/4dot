@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import date as _date
 from collections import deque
 import asyncio

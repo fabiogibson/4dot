@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import unicodedata
 from datetime import datetime, timedelta, date as _date, time as _time
 

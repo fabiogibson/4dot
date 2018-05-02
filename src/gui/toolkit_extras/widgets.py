@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from datetime import datetime, date, timedelta, time as _time
 
 from prompt_toolkit.widgets import Checkbox
