@@ -10,11 +10,9 @@ class Mark:
         self.synced = True
         self.is_holiday = is_holiday
         self.holiday_name = holiday_name
-
-        if not self.is_holiday:
-            self.business, self.day_extras, self.night_extras,\
-                self.credit, self.debt, self.working_hours,\
-                self.breaks = self.read_journey()
+        self.business, self.day_extras, self.night_extras,\
+            self.credit, self.debt, self.working_hours,\
+            self.breaks = self.read_journey()
 
     @classmethod
     def holiday(cls, date, holiday_name):
