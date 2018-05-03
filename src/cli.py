@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta, time as _time
 
 import click
 from babel.dates import format_date, format_time, format_timedelta, format_datetime
-from colorama import Fore
+from colorama import Fore, Style
 
 from forponto import ForPonto
 from gui import justification_window
@@ -162,20 +162,23 @@ class ListMarkDetailsCommand(ListMarksCommand):
 
     @property
     def separator(self):
-        return Fore.CYAN + 120 * '-'
+        return Style.NORMAL + Fore.CYAN + 120 * '-'
 
     def get_mark_format(self, mark):
+        if mark.is_holiday:
+            return Style.DIM + Fore.LIGHTWHITE_EX
+
         if mark.is_empty:
-            return Fore.LIGHTWHITE_EX
+            return Style.NORMAL + Fore.LIGHTWHITE_EX
 
         if mark.has_missing:
-            return Fore.RED
+            return Style.NORMAL + Fore.RED
 
         if mark.working_hours < _time(8, 15):
-            return Fore.MAGENTA
+            return Style.NORMAL + Fore.MAGENTA
 
         if mark.has_day_extras or mark.has_night_extras or mark.has_credit:
-            return Fore.BLUE if mark.justification else Fore.YELLOW
+            return Style.NORMAL + Fore.BLUE if mark.justification else Fore.YELLOW
 
         return Fore.WHITE
 
@@ -183,7 +186,9 @@ class ListMarkDetailsCommand(ListMarksCommand):
         color = self.get_mark_format(mark)
         line = color + '\N{SPIRAL CALENDAR PAD} ' + self.format(mark.date, 20)
 
-        if mark.is_empty:
+        if mark.is_holiday:
+            yield line + 'Feriado - ' +  mark.holiday_name
+        elif mark.is_empty:
             yield line + 'Sem marcações'
         else:
             yield line + str.join('  -  ', [self.format(m) for m in mark.marks]).ljust(60)
@@ -255,6 +260,8 @@ def justificar(user, password):
 def cli(ctx):
     if not ctx.invoked_subcommand:
         ListMarkDetailsCommand()
+
+
 
 
 cli.add_command(ListErrorsCommand, 'erros')

@@ -3,14 +3,22 @@ from datetime import datetime, date, time as _time, timedelta
 
 
 class Mark:
-    def __init__(self, date, marks, justification):
+    def __init__(self, date, marks, justification=None, is_holiday=False, holiday_name=None):
         self.date = date
         self.marks = marks
         self._justification = justification
         self.synced = True
-        self.business, self.day_extras, self.night_extras,\
-            self.credit, self.debt, self.working_hours,\
-            self.breaks = self.read_journey()
+        self.is_holiday = is_holiday
+        self.holiday_name = holiday_name
+
+        if not self.is_holiday:
+            self.business, self.day_extras, self.night_extras,\
+                self.credit, self.debt, self.working_hours,\
+                self.breaks = self.read_journey()
+
+    @classmethod
+    def holiday(cls, date, holiday_name):
+        return cls(date=date, marks=[], is_holiday=True, holiday_name=holiday_name)
 
     @property
     def justification(self):

@@ -3,6 +3,8 @@ import unicodedata
 from datetime import datetime, timedelta, date as _date, time as _time
 
 import click
+import requests
+import json
 
 from forponto.models import Mark
 
@@ -79,7 +81,15 @@ class ReadMarksCommand(ForPontoCommand):
         if el:
             return el[1].input.one().get('value')
 
+    def _get_holidays(self):
+        year = datetime.now().year
+        uri = f'https://api.calendario.com.br/?json=true&ano={year}&ibge=3304557&token=ZmFiaW9naWJzb25AaG90bWFpbC5jb20maGFzaD0yNTIxOTgxNjY='
+        response = requests.get(uri)
+        json_data = json.loads(response.content)
+        return {self._parse_date(h['date']): h['name'] for h in json_data}
+
     def __call__(self, session):
+        holidays = self._get_holidays()
         start_date = _date.today()
 
         if start_date.day > 10:
@@ -109,7 +119,17 @@ class ReadMarksCommand(ForPontoCommand):
             txt_marks = line.font.one('.fontetabptomarc').text
 
             date = self._parse_date(txt_date)
+
+            if date in holidays:
+                yield Mark.holiday(date=date, holiday_name=holidays[date])
+                continue
+
             marks = list(self._parse_marks(date, txt_marks))
+
+            if not marks and date + timedelta(days=1) in holidays:
+                yield Mark.holiday(date=date, holiday_name='Dia Ponte')
+                continue
+
             justification = self._parse_justification(table_ponto.p.all(f'#{txt_date[:10]}706'))
 
             if not justification:
