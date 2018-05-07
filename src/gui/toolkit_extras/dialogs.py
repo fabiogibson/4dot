@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import time
 from datetime import date
 import asyncio
 
@@ -52,7 +53,7 @@ class ListDialog(BaseDialog):
             if c.checked:
                 self.state_control.select_mark(c.mark)
 
-        if self.state_control.marks:
+        if self.state_control.selected_marks:
             self.state_control('justify')
 
     @property
@@ -97,25 +98,22 @@ class SyncDialog(BaseDialog):
     def log_text(self, text):
         self.text_area.buffer.insert_text(text)
 
-    async def worker(self, mark):
-        """
-        """
-        self.log_text('Inserindo justificativa para o dia: {}\n'.format(mark.date))
-        mark.synced = self.forponto_session.justify(mark)
-        return mark
-
-    async def do_tasks(self, loop):
+    async def do_tasks(self):
+        self.log_text("Por favor aguarde...\n")
         step = 100 // len(self.state_control.selected_marks)
-        tasks = []
+        loop = asyncio.get_event_loop()
 
-        for mark in self.state_control.selected_marks:
-            future = asyncio.ensure_future(self.worker(mark), loop=loop)
-            future.add_done_callback(lambda r: self.justify_done(r, step))
-            tasks.append(future)
+        await self.forponto_session.justify_async(
+            self.state_control.selected_marks,
+            loop=loop,
+            done_callback=lambda r: self.justify_done(r, step),)
 
-        await asyncio.gather(*tasks)
         self.set_percentage(100)
         self.state_control.clear_selection()
+
+        self.log_text("Fim!")
+        await asyncio.sleep(2)
+        self.log_text("")
         self.state_control('list')
 
     def justify_done(self, ret, step):
@@ -147,7 +145,7 @@ class SyncDialog(BaseDialog):
         self.percentage = 0
         self.set_percentage(0)
         loop = asyncio.get_event_loop()
-        ts = loop.create_task(self.do_tasks(loop))
+        loop.create_task(self.do_tasks())
 
 
 class InputDialog(BaseDialog):

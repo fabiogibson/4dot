@@ -79,6 +79,7 @@ class ReadMarksCommand(ForPontoCommand):
 
     def _parse_justification(self, el):
         if el:
+            #  import pdb; pdb.set_trace()
             return el[1].input.one().get('value')
 
     def _get_holidays(self):
@@ -130,12 +131,13 @@ class ReadMarksCommand(ForPontoCommand):
                 yield Mark.holiday(date=date, holiday_name='Dia Ponte')
                 continue
 
-            justification = self._parse_justification(table_ponto.p.all(f'#{txt_date[:10]}706'))
+            codes = ['706', '260', '261', '097', '098', '280', '276']
+            justification = None
 
-            if not justification:
-                justification = self._parse_justification(table_ponto.p.all(f'#{txt_date[:10]}260'))
+            for code in codes:
+                justification = self._parse_justification(table_ponto.p.all(f'#{txt_date[:10]}{code}'))
 
-            if not justification:
-                justification = self._parse_justification(table_ponto.p.all(f'#{txt_date[:10]}261'))
+                if justification:
+                    break
 
             yield Mark(date=date, marks=marks, justification=justification)

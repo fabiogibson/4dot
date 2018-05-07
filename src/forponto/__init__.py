@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import asyncio
 from datetime import datetime, timedelta, time as _time, date
 
 import requests
@@ -72,9 +73,20 @@ class ForPontoSession:
         read_marks = ReadMarksCommand()
         return read_marks(self)
 
-    def justify(self, mark):
+    async def justify(self, mark):
         justify = JustifyCommand(mark)
-        return justify(self)
+        mark.synced = justify(self)
+        return mark
+
+    async def justify_async(self, marks, loop, done_callback=None):
+        tasks = []
+
+        for mark in marks:
+            task = asyncio.ensure_future(self.justify(mark), loop=loop)
+            task.add_done_callback(done_callback)
+            tasks.append(task)
+
+        await asyncio.gather(*tasks)
 
     def __exit__(self, *args):
         pass

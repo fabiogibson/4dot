@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
+import asyncio
 from datetime import datetime, date, timedelta, time as _time
 
 import click
+from prompt_toolkit.shortcuts.progress_bar import progress_bar
 from babel.dates import format_date, format_time, format_timedelta, format_datetime
 from colorama import Fore, Style
 
 from forponto import ForPonto
 from gui import justification_window
+
 
 class ListMarksCommand:
     """
@@ -237,10 +240,40 @@ def legenda():
     click.echo(Fore.BLUE + 'Dias onde a jornada excedente de trabalho foi justificada.')
 
 
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory, AutoSuggest, Suggestion
+from prompt_toolkit import prompt
+from prompt_toolkit.key_binding.key_bindings import KeyBindings
+
+
+class AutoSuggestJustifications(AutoSuggest):
+    """
+    Give suggestions based on recent justifications.
+    """
+    def __init__(self, suggestions):
+        self.suggestions = suggestions
+
+    def get_suggestion(self, buffer, document):
+        for suggestion in self.suggestions:
+            if suggestion.lower().startswith(document.text.lower()):
+                    return Suggestion(suggestion[len(document.text):])
+
+
+default_key_binding = KeyBindings()
+handle = default_key_binding.add
+
+@handle('tab')
+def _(event):
+    b = event.current_buffer
+    if not b.suggestion:
+        return
+    b.insert_text(b.suggestion.text)
+
+
 @click.command()
 @click.option('--user', prompt='Matrícula', envvar='FORPONTO_USER')
 @click.option('--password', prompt='Senha', envvar='FORPONTO_PASSWORD')
-def justificar(user, password):
+@click.option('--all', '-a', 'justify_all', is_flag=True, help='Registrar uma justificativa para todas as marcações pendentes.')
+def justificar(user, password, justify_all):
     """
     Registra justificativas de horas excedentes a jornada de 8:15h.
     """
@@ -248,11 +281,47 @@ def justificar(user, password):
 
     with forponto.Session(user=user, password=password) as fp:
         if not fp.authenticate():
-            return click.echo(
-                Fore.RED + '** Matrícula não cadastrada ou senha inválida.')
+            return click.echo(Fore.RED + '** Matrícula não cadastrada ou senha inválida.')
 
-        marks = [m for m in fp.read_marks() if m.has_day_extras or m.has_night_extras or m.has_credit]
-        justification_window.show(marks, fp)
+        justifications = []
+        pending = []
+
+        for mark in fp.read_marks():
+            if not (mark.has_day_extras or mark.has_night_extras or mark.has_credit):
+                continue
+
+            if mark.justification:
+                justifications.append(mark.justification)
+                continue
+
+            pending.append(mark)
+
+        if not pending:
+            return click.echo(Fore.CYAN + '** Não existem justificativas pendentes.')
+
+        if not justify_all:
+            justification_window.show(pending, fp)
+            return
+
+        justification = prompt(
+            'Informe a justificativa: ',
+            auto_suggest=AutoSuggestJustifications(justifications),
+            key_bindings=default_key_binding,
+        )
+
+        for mark in pending:
+            mark.justification = justification
+
+        with progress_bar() as pb:
+            progress_counter = pb(range(len(pending) + 1))
+            progress_counter.current = 1
+            progress_iterator = iter(progress_counter)
+
+            loop = asyncio.new_event_loop()
+            tasks = loop.create_task(
+                fp.justify_async(pending, loop, lambda m: next(progress_iterator)))
+            loop.run_until_complete(tasks)
+            loop.close()
 
 
 @click.group(invoke_without_command=True)
@@ -260,8 +329,6 @@ def justificar(user, password):
 def cli(ctx):
     if not ctx.invoked_subcommand:
         ListMarkDetailsCommand()
-
-
 
 
 cli.add_command(ListErrorsCommand, 'erros')
