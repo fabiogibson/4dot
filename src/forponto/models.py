@@ -116,9 +116,10 @@ class Mark:
 
         # if there are only two marks and journey is bigger than 6 hours,
         # we have to remove 60 minutes for lunch.
-        if len(self.marks) == 2 and fulltime >= 21600:
+        # if len(self.marks) == 2 and fulltime >= 21600:
+        if breaks < 3600 and fulltime >= 21600:
             fulltime -= 3600
-            breaks += 3600
+            breaks = 3600
 
         day_extras, night_extras = self._get_extras()
         business = fulltime - day_extras - night_extras
